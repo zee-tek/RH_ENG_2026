@@ -1,28 +1,45 @@
-powershell -NoProfile -ExecutionPolicy Bypass -Command "
-mkdir rhce-lab -Force | Out-Null;
-cd rhce-lab;
+# ================================
+# RHCE LAB ONE-COMMAND SETUP
+# ================================
 
-# --- Create scripts folder ---
-mkdir scripts -Force | Out-Null;
+Write-Host "Creating RHCE lab environment..."
 
-# --- COMMON SCRIPT ---
+# Create lab directory
+$labPath = "$PWD\rhce-lab"
+New-Item -ItemType Directory -Force -Path $labPath | Out-Null
+Set-Location $labPath
+
+# Create scripts folder
+New-Item -ItemType Directory -Force -Path scripts | Out-Null
+
+# ================================
+# COMMON SCRIPT
+# ================================
 @'
 #!/usr/bin/env bash
 set -eux
+
 id ansi_user || useradd -m -G wheel ansi_user
-echo 'ansi_user:redhat' | chpasswd
-dnf install -y sudo curl
-echo 'ansi_user ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/ansi_user
-chmod 440 /etc/sudoers.d/ansi_user
-'@ | Out-File scripts/common.sh -Encoding ascii
+echo "ansi_user:redhat" | chpasswd
 
-# --- CONTROLLER SCRIPT ---
+dnf install -y sudo curl
+
+echo "ansi_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansi_user
+chmod 440 /etc/sudoers.d/ansi_user
+'@ | Set-Content -Encoding ascii scripts/common.sh
+
+
+# ================================
+# CONTROLLER SCRIPT
+# ================================
 @'
 #!/usr/bin/env bash
 set -eux
+
 dnf install -y ansible-core
 
-sudo -u ansi_user ssh-keygen -t rsa -N '' -f /home/ansi_user/.ssh/id_rsa -q || true
+sudo -u ansi_user ssh-keygen -t rsa -N "" \
+-f /home/ansi_user/.ssh/id_rsa -q || true
 
 mkdir -p /vagrant/keys
 cp /home/ansi_user/.ssh/id_rsa.pub /vagrant/keys/
@@ -34,12 +51,16 @@ serverb.example.com
 serverc.example.com
 serverd.example.com
 EOF
-'@ | Out-File scripts/controller.sh -Encoding ascii
+'@ | Set-Content -Encoding ascii scripts/controller.sh
 
-# --- REPO SERVER SCRIPT ---
+
+# ================================
+# REPO SERVER SCRIPT
+# ================================
 @'
 #!/usr/bin/env bash
 set -eux
+
 dnf install -y httpd createrepo dnf-plugins-core
 
 mkdir -p /var/www/html/repo
@@ -49,12 +70,16 @@ vim-enhanced wget tree
 
 createrepo /var/www/html/repo
 
-cp /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9 /var/www/html/RPM-GPG-KEY-myrepo
+cp /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9 \
+/var/www/html/RPM-GPG-KEY-myrepo
 
 systemctl enable --now httpd
-'@ | Out-File scripts/repo.sh -Encoding ascii
+'@ | Set-Content -Encoding ascii scripts/repo.sh
 
-# --- TARGET SCRIPT ---
+
+# ================================
+# TARGET SCRIPT
+# ================================
 @'
 #!/usr/bin/env bash
 set -eux
@@ -76,9 +101,12 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-myrepo
 EOF
 
 dnf clean all
-'@ | Out-File scripts/target.sh -Encoding ascii
+'@ | Set-Content -Encoding ascii scripts/target.sh
 
-# --- VAGRANTFILE ---
+
+# ================================
+# VAGRANTFILE
+# ================================
 @'
 Vagrant.configure("2") do |config|
   config.vm.box = "generic/rocky9"
@@ -89,6 +117,7 @@ Vagrant.configure("2") do |config|
     config.vm.define name do |node|
       node.vm.hostname = "#{name}.example.com"
       node.vm.network "public_network"
+
       node.vm.provider "virtualbox" do |vb|
         vb.memory = 1536
       end
@@ -105,11 +134,27 @@ Vagrant.configure("2") do |config|
     end
   end
 end
-'@ | Out-File Vagrantfile -Encoding ascii
+'@ | Set-Content -Encoding ascii Vagrantfile
 
-# --- MAKE EXECUTABLE ---
-bash -c 'chmod +x scripts/*.sh' 2>$null
 
-# --- START LAB ---
+# ================================
+# START LAB
+# ================================
+Write-Host ""
+Write-Host "Starting Vagrant lab..."
+Write-Host "This may take several minutes on first run..."
+Write-Host ""
+
 vagrant up
-"
+
+Write-Host ""
+Write-Host "==================================="
+Write-Host "LAB READY ✅"
+Write-Host "==================================="
+Write-Host ""
+Write-Host "Access controller:"
+Write-Host "vagrant ssh controller"
+Write-Host ""
+Write-Host "Cleanup lab:"
+Write-Host "vagrant destroy -f"
+Write-Host ""
