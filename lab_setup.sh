@@ -13,7 +13,7 @@ BOLD_YELLOW='\033[1;33m'
 BOLD_RED='\033[1;31m'
 BOLD_MAGENTA='\033[1;35m'
 
-# Regular Text Colors
+# Regular Text Colors (FIXED: Added missing escape brackets)
 TEXT_CYAN='\033[0;36m'
 TEXT_GREEN='\033[0;32m'
 TEXT_YELLOW='\033[0;33m'
@@ -26,10 +26,11 @@ echo -e "${BOLD_CYAN}==================================================${NC}"
 echo -e "${BOLD_WHITE}    RHCE Dynamic Lab Environment Manager          ${NC}"
 echo -e "${BOLD_CYAN}==================================================${NC}"
 echo -e "${BOLD_GREEN}1)${TEXT_GREEN} Deploy / Start Lab Elements${NC}"
-echo -e "${BOLD_RED}2)${TEXT_YELLOW} Destroy Lab Elements${NC}"
-echo -e "${BOLD_WHITE}3)${NC} Exit"
+echo -e "${BOLD_YELLOW}2)${TEXT_YELLOW} Halt / Stop Lab Elements (Keep Data)${NC}"
+echo -e "${BOLD_RED}3)${TEXT_RED} Destroy Lab Elements (Wipe Data)${NC}"
+echo -e "${BOLD_WHITE}4)${NC} Exit"
 echo -e "${BOLD_CYAN}==================================================${NC}"
-read -p "$(echo -e "${BOLD_YELLOW}Choose an option [1-3]: ${NC}")" main_choice
+read -p "$(echo -e "${BOLD_YELLOW}Choose an option [1-4]: ${NC}")" main_choice
 
 case $main_choice in
     1)
@@ -145,6 +146,66 @@ EOF
         ;;
     2)
         echo ""
+        echo -e "${BOLD_YELLOW}==================================================${NC}"
+        echo -e "${BOLD_WHITE}              VM Halt / Stop Options              ${NC}"
+        echo -e "${BOLD_YELLOW}==================================================${NC}"
+        echo -e "${BOLD_CYAN}a)${NC} Halt EVERYTHING (Power down entire lab gracefully)"
+        echo -e "${BOLD_CYAN}b)${NC} Custom Halt Selection (Pick individual VMs to stop)"
+        read -p "$(echo -e "${BOLD_YELLOW}Select target shutdown strategy [a/b]: ${NC}")" halt_style
+
+        if [ "$halt_style" == "a" ]; then
+            echo -e "\n${BOLD_YELLOW}Gracefully shutting down all running environment nodes...${NC}"
+            vagrant halt
+            echo -e "${BOLD_GREEN}All lab machines are powered down successfully.${NC}"
+
+        elif [ "$halt_style" == "b" ]; then
+            echo ""
+            echo -e "${BOLD_YELLOW}==================================================${NC}"
+            echo -e "${BOLD_WHITE} Type 'y' for each VM you want to STOP:          ${NC}"
+            echo -e "${BOLD_YELLOW}==================================================${NC}"
+            declare -a targets_to_halt=()
+
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'controller'? [y/N]: ${NC}")" halt_cntl
+            if [[ "$halt_cntl" =~ ^[Yy]$ ]]; then targets_to_halt+=("controller"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'reposerver'? [y/N]: ${NC}")" halt_repo
+            if [[ "$halt_repo" =~ ^[Yy]$ ]]; then targets_to_halt+=("reposerver"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'storage-lab'? [y/N]: ${NC}")" halt_stg
+            if [[ "$halt_stg" =~ ^[Yy]$ ]]; then targets_to_halt+=("storage-lab"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'servera'? [y/N]: ${NC}")" halt_sa
+            if [[ "$halt_sa" =~ ^[Yy]$ ]]; then targets_to_halt+=("servera"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'serverb'? [y/N]: ${NC}")" halt_sb
+            if [[ "$halt_sb" =~ ^[Yy]$ ]]; then targets_to_halt+=("serverb"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'serverc'? [y/N]: ${NC}")" halt_sc
+            if [[ "$halt_sc" =~ ^[Yy]$ ]]; then targets_to_halt+=("serverc"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'serverd'? [y/N]: ${NC}")" halt_sd
+            if [[ "$halt_sd" =~ ^[Yy]$ ]]; then targets_to_halt+=("serverd"); fi
+            
+            read -p "$(echo -e "${TEXT_CYAN}Stop 'servere'? [y/N]: ${NC}")" halt_se
+            if [[ "$halt_se" =~ ^[Yy]$ ]]; then targets_to_halt+=("servere"); fi
+
+            if [ ${#targets_to_halt[@]} -eq 0 ]; then
+                echo -e "${BOLD_YELLOW}No VMs selected for halt execution. Returning to console.${NC}"
+                exit 0
+            fi
+
+            echo -e "\n${BOLD_YELLOW}Stopping selected nodes: ${BOLD_WHITE}${targets_to_halt[*]}${NC}"
+            for target in "${targets_to_halt[@]}"; do
+                echo -e "${BOLD_YELLOW}Halting $target...${NC}"
+                vagrant halt "$target"
+            done
+            echo -e "${BOLD_GREEN}Selected nodes stopped successfully.${NC}"
+        else
+            echo -e "${BOLD_RED}Invalid shutdown option selected.${NC}"
+        fi
+        ;;
+    3)
+        echo ""
         echo -e "${BOLD_RED}==================================================${NC}"
         echo -e "${BOLD_WHITE}            VM Destruction Options                ${NC}"
         echo -e "${BOLD_RED}==================================================${NC}"
@@ -218,7 +279,7 @@ EOF
             echo -e "${BOLD_RED}Invalid teardown option selected.${NC}"
         fi
         ;;
-    3)
+    4)
         echo -e "${BOLD_WHITE}Exiting. Keep automating!${NC}"
         exit 0
         ;;
