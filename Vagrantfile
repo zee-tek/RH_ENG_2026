@@ -4,11 +4,12 @@
 Vagrant.configure("2") do |config|
   # Default Box: Bento Rocky Linux 9 (Reliable, bug-for-bug RHEL9 compatible)
   config.vm.box = "bento/rockylinux-9"
+  config.vm.boot_timeout = 600 # Extended patient boot window
   
   # Provider configuration (VirtualBox)
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
-    vb.linked_clone = true # Speeds up multi-VM deployment significantly
+    vb.linked_clone = true # Ultra-fast multi-VM deployment via local delta disks
   end
 
   # ==========================================
@@ -16,7 +17,8 @@ Vagrant.configure("2") do |config|
   # ==========================================
   config.vm.define "controller" do |cntl|
     cntl.vm.hostname = "controller.example.com"
-    cntl.vm.network "public_network", use_dhcp_assigned_default_route: true
+    # Switched to Private/Host-Only network with Static IP
+    cntl.vm.network "private_network", ip: "192.168.56.10"
     
     cntl.vm.provider "virtualbox" do |vb|
       vb.memory = 2048
@@ -34,7 +36,7 @@ Vagrant.configure("2") do |config|
       cp /home/ansi_user/.ssh/id_ed25519.pub /vagrant/.ssh_keys/controller.pub
       chmod 644 /vagrant/.ssh_keys/controller.pub
 
-      # test_user setup (NO SSH keys generated or exported)
+      # test_user setup (NO SSH keys generated or exported for -k training)
       useradd -m -s /bin/bash test_user
       echo 'test_user:redhat' | chpasswd
       echo "test_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/test_user
@@ -49,7 +51,7 @@ Vagrant.configure("2") do |config|
   # ==========================================
   config.vm.define "reposerver" do |repo|
     repo.vm.hostname = "reposerver.example.com"
-    repo.vm.network "public_network"
+    repo.vm.network "private_network", ip: "192.168.56.20"
     
     repo.vm.provider "virtualbox" do |vb|
       vb.memory = 1024
@@ -74,7 +76,7 @@ Vagrant.configure("2") do |config|
           cp /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9 /var/www/html/repo/keys/
       fi
 
-      echo "--> Downloading curated packages..."
+      echo "--> Downloading curated packages via primary NAT interface..."
       dnf download -y --destdir=/var/www/html/repo/baseos wget
       dnf download -y --destdir=/var/www/html/repo/appstream tmux
       
@@ -99,7 +101,7 @@ Vagrant.configure("2") do |config|
   # ==========================================
   config.vm.define "storage-lab" do |stg|
     stg.vm.hostname = "storage-lab.example.com"
-    stg.vm.network "public_network"
+    stg.vm.network "private_network", ip: "192.168.56.30"
     
     stg.vm.provider "virtualbox" do |vb|
       vb.memory = 1024
@@ -124,7 +126,6 @@ Vagrant.configure("2") do |config|
 
       mkdir -p /home/ansi_user/.ssh && chmod 700 /home/ansi_user/.ssh
       
-      # FIXED: Uses 'done' to cleanly close the bash guard loop
       while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do 
         sleep 2 
       done
@@ -138,18 +139,18 @@ Vagrant.configure("2") do |config|
   # ==========================================
   # 4. MANAGED LAB TARGETS (servera to servere)
   # ==========================================
-  servers = {
-    "servera" => "servera.example.com",
-    "serverb" => "serverb.example.com",
-    "serverc" => "serverc.example.com",
-    "serverd" => "serverd.example.com",
-    "servere" => "servere.example.com"
-  }
+  servers = [
+    {"name" => "servera", "ip" => "192.168.56.41", "host" => "servera.example.com"},
+    {"name" => "serverb", "ip" => "192.168.56.42", "host" => "serverb.example.com"},
+    {"name" => "serverc", "ip" => "192.168.56.43", "host" => "serverc.example.com"},
+    {"name" => "serverd", "ip" => "192.168.56.44", "host" => "serverd.example.com"},
+    {"name" => "servere", "ip" => "192.168.56.45", "host" => "servere.example.com"}
+  ]
 
-  servers.each do |vm_name, hostname|
-    config.vm.define vm_name do |node|
-      node.vm.hostname = hostname
-      node.vm.network "public_network"
+  servers.each do |server|
+    config.vm.define server["name"] do |node|
+      node.vm.hostname = server["host"]
+      node.vm.network "private_network", ip: server["ip"]
       
       node.vm.provider "virtualbox" do |vb|
         vb.memory = 1024
@@ -157,7 +158,7 @@ Vagrant.configure("2") do |config|
       end
 
       node.vm.provision "shell", inline: <<-SHELL
-        echo "=== Configuring #{hostname} ==="
+        echo "=== Configuring #{server["host"]} ==="
         useradd -m -s /bin/bash ansi_user
         echo 'ansi_user:redhat' | chpasswd
         echo "ansi_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansi_user
@@ -169,7 +170,6 @@ Vagrant.configure("2") do |config|
 
         mkdir -p /home/ansi_user/.ssh && chmod 700 /home/ansi_user/.ssh
         
-        # FIXED: Uses 'done' to cleanly close the bash guard loop
         while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do 
           sleep 2 
         done
