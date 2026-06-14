@@ -1,0 +1,17 @@
+# How to suppress host key checking message
+
+ ansible all -i inventory -m ping
+The authenticity of host 'servera.example.com (192.168.1.56)' can't be established.
+ED25519 key fingerprint is SHA256:NcU1EQT5o1v+HYAdqF972vTlrHoEppCN9OSuFUfeIQE.
+This key is not known by any other names
+The authenticity of host 'storage-lab.example.com (192.168.1.68)' can't be established.
+ED25519 key fingerprint is SHA256:NcU1EQT5o1v+HYAdqF972vTlrHoEppCN9OSuFUfeIQE.
+This key is not known by any other names
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+
+
+Solution:
+
+  # Add below line in ansible.cfg file
+
+     host_key_checking = False
