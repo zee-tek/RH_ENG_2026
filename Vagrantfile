@@ -2,11 +2,13 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
+  # Default Box: Bento Rocky Linux 9 (Reliable, bug-for-bug RHEL9 compatible)
   config.vm.box = "bento/rockylinux-9"
   
+  # Provider configuration (VirtualBox)
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
-    vb.linked_clone = true
+    vb.linked_clone = true # Speeds up multi-VM deployment significantly
   end
 
   # ==========================================
@@ -32,7 +34,7 @@ Vagrant.configure("2") do |config|
       cp /home/ansi_user/.ssh/id_ed25519.pub /vagrant/.ssh_keys/controller.pub
       chmod 644 /vagrant/.ssh_keys/controller.pub
 
-      # NEW: test_user setup (NO SSH keys generated or exported)
+      # test_user setup (NO SSH keys generated or exported)
       useradd -m -s /bin/bash test_user
       echo 'test_user:redhat' | chpasswd
       echo "test_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/test_user
@@ -43,7 +45,7 @@ Vagrant.configure("2") do |config|
   end
 
   # ==========================================
-  # 2. REPO SERVER NODE
+  # 2. REPO SERVER NODE (Curated HTTP Package Server)
   # ==========================================
   config.vm.define "reposerver" do |repo|
     repo.vm.hostname = "reposerver.example.com"
@@ -60,7 +62,7 @@ Vagrant.configure("2") do |config|
       echo 'ansi_user:redhat' | chpasswd
       echo "ansi_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansi_user
 
-      # NEW: Add test_user here (Password only)
+      # Add test_user (Password only)
       useradd -m -s /bin/bash test_user
       echo 'test_user:redhat' | chpasswd
       echo "test_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/test_user
@@ -72,10 +74,14 @@ Vagrant.configure("2") do |config|
           cp /etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9 /var/www/html/repo/keys/
       fi
 
+      echo "--> Downloading curated packages..."
       dnf download -y --destdir=/var/www/html/repo/baseos wget
       dnf download -y --destdir=/var/www/html/repo/appstream tmux
+      
+      echo "--> Indexing local metadata..."
       createrepo_c /var/www/html/repo/baseos
       createrepo_c /var/www/html/repo/appstream
+      
       systemctl enable --now httpd
       chmod -R 755 /var/www/html/repo/
 
@@ -89,7 +95,7 @@ Vagrant.configure("2") do |config|
   end
 
   # ==========================================
-  # 3. STORAGE LAB NODE
+  # 3. STORAGE LAB NODE (With Secondary 1G Raw Drive)
   # ==========================================
   config.vm.define "storage-lab" do |stg|
     stg.vm.hostname = "storage-lab.example.com"
@@ -111,13 +117,18 @@ Vagrant.configure("2") do |config|
       echo 'ansi_user:redhat' | chpasswd
       echo "ansi_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansi_user
 
-      # NEW: Add test_user here (Password only)
+      # Add test_user (Password only)
       useradd -m -s /bin/bash test_user
       echo 'test_user:redhat' | chpasswd
       echo "test_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/test_user
 
       mkdir -p /home/ansi_user/.ssh && chmod 700 /home/ansi_user/.ssh
-      while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do sleep 2; end
+      
+      # FIXED: Uses 'done' to cleanly close the bash guard loop
+      while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do 
+        sleep 2 
+      done
+      
       cp /vagrant/.ssh_keys/controller.pub /home/ansi_user/.ssh/authorized_keys
       chmod 600 /home/ansi_user/.ssh/authorized_keys
       chown -R ansi_user:ansi_user /home/ansi_user/.ssh
@@ -151,13 +162,18 @@ Vagrant.configure("2") do |config|
         echo 'ansi_user:redhat' | chpasswd
         echo "ansi_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ansi_user
 
-        # NEW: Add test_user here (Password only)
+        # Add test_user (Password only)
         useradd -m -s /bin/bash test_user
         echo 'test_user:redhat' | chpasswd
         echo "test_user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/test_user
 
         mkdir -p /home/ansi_user/.ssh && chmod 700 /home/ansi_user/.ssh
-        while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do sleep 2; end
+        
+        # FIXED: Uses 'done' to cleanly close the bash guard loop
+        while [ ! -f /vagrant/.ssh_keys/controller.pub ]; do 
+          sleep 2 
+        done
+        
         cp /vagrant/.ssh_keys/controller.pub /home/ansi_user/.ssh/authorized_keys
         chmod 600 /home/ansi_user/.ssh/authorized_keys
         chown -R ansi_user:ansi_user /home/ansi_user/.ssh
