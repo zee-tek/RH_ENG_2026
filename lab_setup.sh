@@ -1,88 +1,110 @@
 #!/bin/bash
 
+# ==========================================================
+# ANSI Color Palette Definitions
+# ==========================================================
+NC='\033[0m'               # Text Reset (No Color)
+
+# Bold Text Colors
+BOLD_WHITE='\033[1;37m'
+BOLD_CYAN='\033[1;36m'
+BOLD_GREEN='\033[1;32m'
+BOLD_YELLOW='\033[1;33m'
+BOLD_RED='\033[1;31m'
+BOLD_MAGENTA='\033[1;35m'
+
+# Regular Text Colors
+TEXT_CYAN='\033[0;36m'
+TEXT_GREEN='\033[0;32m'
+TEXT_YELLOW='\033[0;33m'
+
 clear
-echo "=================================================="
-echo "    RHCE Dynamic Lab Environment Manager          "
-echo "=================================================="
-echo "1) Deploy / Start Lab Elements"
-echo "2) Destroy Lab Elements"
-echo "3) Exit"
-read -p "Choose an option [1-3]: " main_choice
+# Explicit Header Notice Requested
+echo -e "${BOLD_MAGENTA}>>> Starting RHCE LAB SETUP...${NC}\n"
+
+echo -e "${BOLD_CYAN}==================================================${NC}"
+echo -e "${BOLD_WHITE}    RHCE Dynamic Lab Environment Manager          ${NC}"
+echo -e "${BOLD_CYAN}==================================================${NC}"
+echo -e "${BOLD_GREEN}1)${TEXT_GREEN} Deploy / Start Lab Elements${NC}"
+echo -e "${BOLD_RED}2)${TEXT_YELLOW} Destroy Lab Elements${NC}"
+echo -e "${BOLD_WHITE}3)${NC} Exit"
+echo -e "${BOLD_CYAN}==================================================${NC}"
+read -p "$(echo -e "${BOLD_YELLOW}Choose an option [1-3]: ${NC}")" main_choice
 
 case $main_choice in
     1)
         echo ""
-        echo "Deployment Modes:"
-        echo "a) Deploy Standard Lab (Controller + 5 Managed Servers)"
-        echo "b) Deploy Dedicated Curated Repo Server Only"
-        echo "c) Custom Deployment Selection (Pick individual VMs)"
-        read -p "Select deployment option [a/b/c]: " style_choice
+        echo -e "${BOLD_WHITE}Deployment Modes:${NC}"
+        echo -e "${BOLD_CYAN}a)${NC} Deploy Standard Lab (Controller + 5 Managed Servers)"
+        echo -e "${BOLD_CYAN}b)${NC} Deploy Dedicated Curated Repo Server Only"
+        echo -e "${BOLD_CYAN}c)${NC} Custom Deployment Selection (Pick individual VMs)"
+        read -p "$(echo -e "${BOLD_YELLOW}Select deployment option [a/b/c]: ${NC}")" style_choice
 
         mkdir -p .ssh_keys
         declare -a active_servers=()
 
         if [ "$style_choice" == "a" ]; then
-            echo "Deploying standard RHCE cluster architecture..."
+            echo -e "\n${BOLD_GREEN}Deploying standard RHCE cluster architecture...${NC}"
             active_servers=("controller" "servera" "serverb" "serverc" "serverd" "servere")
             for vm in "${active_servers[@]}"; do
                 vagrant up "$vm"
             done
 
         elif [ "$style_choice" == "b" ]; then
-            echo "Deploying Standalone Local Repository Server..."
+            echo -e "\n${BOLD_GREEN}Deploying Standalone Local Repository Server...${NC}"
             active_servers=("reposerver")
             vagrant up reposerver
 
         elif [ "$style_choice" == "c" ]; then
             echo ""
-            echo "=================================================="
-            echo " Type 'y' for each VM you want to spin up:       "
-            echo "=================================================="
+            echo -e "${BOLD_CYAN}==================================================${NC}"
+            echo -e "${BOLD_WHITE} Type 'y' for each VM you want to spin up:       ${NC}"
+            echo -e "${BOLD_CYAN}==================================================${NC}"
             
-            read -p "Deploy 'controller'? [y/N]: " choice_cntl
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'controller'? [y/N]: ${NC}")" choice_cntl
             if [[ "$choice_cntl" =~ ^[Yy]$ ]]; then active_servers+=("controller"); fi
             
-            read -p "Deploy 'reposerver'? [y/N]: " choice_repo
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'reposerver'? [y/N]: ${NC}")" choice_repo
             if [[ "$choice_repo" =~ ^[Yy]$ ]]; then active_servers+=("reposerver"); fi
             
-            read -p "Deploy 'storage-lab'? [y/N]: " choice_stg
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'storage-lab'? [y/N]: ${NC}")" choice_stg
             if [[ "$choice_stg" =~ ^[Yy]$ ]]; then active_servers+=("storage-lab"); fi
             
-            read -p "Deploy 'servera'? [y/N]: " choice_sa
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'servera'? [y/N]: ${NC}")" choice_sa
             if [[ "$choice_sa" =~ ^[Yy]$ ]]; then active_servers+=("servera"); fi
             
-            read -p "Deploy 'serverb'? [y/N]: " choice_sb
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'serverb'? [y/N]: ${NC}")" choice_sb
             if [[ "$choice_sb" =~ ^[Yy]$ ]]; then active_servers+=("serverb"); fi
             
-            read -p "Deploy 'serverc'? [y/N]: " choice_sc
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'serverc'? [y/N]: ${NC}")" choice_sc
             if [[ "$choice_sc" =~ ^[Yy]$ ]]; then active_servers+=("serverc"); fi
             
-            read -p "Deploy 'serverd'? [y/N]: " choice_sd
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'serverd'? [y/N]: ${NC}")" choice_sd
             if [[ "$choice_sd" =~ ^[Yy]$ ]]; then active_servers+=("serverd"); fi
             
-            read -p "Deploy 'servere'? [y/N]: " choice_se
+            read -p "$(echo -e "${TEXT_CYAN}Deploy 'servere'? [y/N]: ${NC}")" choice_se
             if [[ "$choice_se" =~ ^[Yy]$ ]]; then active_servers+=("servere"); fi
 
             if [ ${#active_servers[@]} -eq 0 ]; then
-                echo "No VMs selected. Exiting."
+                echo -e "${BOLD_RED}No VMs selected. Exiting.${NC}"
                 exit 0
             fi
 
-            echo "Spinning up chosen machines: ${active_servers[*]}"
+            echo -e "\n${BOLD_GREEN}Spinning up chosen machines: ${BOLD_WHITE}${active_servers[*]}${NC}"
             for vm in "${active_servers[@]}"; do
                 vagrant up "$vm"
             done
         else
-            echo "Invalid selection. Exiting."
+            echo -e "${BOLD_RED}Invalid selection. Exiting.${NC}"
             exit 1
         fi
 
         # Run internal IP network synchronization mapping only if controller is part of active build
         if [[ " ${active_servers[*]} " =~ " controller " ]]; then
             echo ""
-            echo "=================================================="
-            echo "   Configuring Controller /etc/hosts file...     "
-            echo "=================================================="
+            echo -e "${BOLD_CYAN}==================================================${NC}"
+            echo -e "${BOLD_WHITE}   Configuring Controller /etc/hosts file...     ${NC}"
+            echo -e "${BOLD_CYAN}==================================================${NC}"
             
             local_entries=$(mktemp)
 
@@ -90,7 +112,7 @@ case $main_choice in
             cntl_ip=$(vagrant ssh controller -c "hostname -I" 2>/dev/null | tr ' ' '\n' | grep -v '^10\.0\.2\.' | head -n 1 | tr -d '\r\n')
             if [ ! -z "$cntl_ip" ]; then
                 echo "$cntl_ip controller.example.com controller" >> "$local_entries"
-                echo "Captured: controller.example.com -> $cntl_ip"
+                echo -e "${TEXT_GREEN}Captured:${NC} controller.example.com -> $cntl_ip"
             fi
 
             # 2. Capture and append all other active infrastructure targets
@@ -99,14 +121,14 @@ case $main_choice in
                     ip_addr=$(vagrant ssh "$vm" -c "hostname -I" 2>/dev/null | tr ' ' '\n' | grep -v '^10\.0\.2\.' | head -n 1 | tr -d '\r\n')
                     if [ ! -z "$ip_addr" ]; then
                         echo "$ip_addr ${vm}.example.com ${vm}" >> "$local_entries"
-                        echo "Captured: ${vm}.example.com -> $ip_addr"
+                        echo -e "${TEXT_GREEN}Captured:${NC} ${vm}.example.com -> $ip_addr"
                     else
-                        echo "Warning: Could not fetch IP mapping for $vm"
+                        echo -e "${BOLD_YELLOW}Warning: Could not fetch IP mapping for $vm${NC}"
                     fi
                 fi
             done
 
-            echo "Injecting host mappings into controller..."
+            echo -e "\n${BOLD_WHITE}Injecting host mappings into controller...${NC}"
             vagrant ssh controller -c "
                 sudo sed -i '/# --- RHCE LAB SERVERS START ---/,/# --- RHCE LAB SERVERS END ---/d' /etc/hosts
                 cat << 'EOF' | sudo tee -a /etc/hosts > /dev/null
@@ -116,92 +138,92 @@ $(cat "$local_entries")
 EOF
             " 2>/dev/null
             rm -f "$local_entries"
-            echo "=================================================="
-            echo " Controller /etc/hosts resolution completed.     "
-            echo "=================================================="
+            echo -e "${BOLD_CYAN}==================================================${NC}"
+            echo -e "${BOLD_GREEN} Controller /etc/hosts resolution completed.     ${NC}"
+            echo -e "${BOLD_CYAN}==================================================${NC}"
         fi
         ;;
     2)
         echo ""
-        echo "=================================================="
-        echo "            VM Destruction Options                "
-        echo "=================================================="
-        echo "a) Destroy EVERYTHING (Wipe entire lab cluster)"
-        echo "b) Custom Destruction Selection (Pick individual VMs to wipe)"
-        read -p "Select teardown strategy [a/b]: " destroy_style
+        echo -e "${BOLD_RED}==================================================${NC}"
+        echo -e "${BOLD_WHITE}            VM Destruction Options                ${NC}"
+        echo -e "${BOLD_RED}==================================================${NC}"
+        echo -e "${BOLD_CYAN}a)${NC} ${BOLD_RED}Destroy EVERYTHING (Wipe entire lab cluster)${NC}"
+        echo -e "${BOLD_CYAN}b)${NC} Custom Destruction Selection (Pick individual VMs to wipe)"
+        read -p "$(echo -e "${BOLD_YELLOW}Select teardown strategy [a/b]: ${NC}")" destroy_style
 
         if [ "$destroy_style" == "a" ]; then
-            echo "WARNING: This will completely delete all lab environment nodes."
-            read -p "Confirm structural deletion? (y/n): " confirm
+            echo -e "\n${BOLD_RED}WARNING: This will completely delete all lab environment nodes.${NC}"
+            read -p "$(echo -e "${BOLD_YELLOW}Confirm structural deletion? (y/n): ${NC}")" confirm
             if [[ "$confirm" =~ ^[Yy]$ ]]; then
                 vagrant destroy -f
                 rm -rf .ssh_keys storage_disk.vdi
-                echo "Complete lab cluster and storage files have been cleanly purged."
+                echo -e "${BOLD_GREEN}Complete lab cluster and storage files have been cleanly purged.${NC}"
             else
-                echo "Operation aborted."
+                echo -e "${BOLD_YELLOW}Operation aborted.${NC}"
             fi
 
         elif [ "$destroy_style" == "b" ]; then
             echo ""
-            echo "=================================================="
-            echo " Type 'y' for each VM you want to DESTROY:       "
-            echo "=================================================="
+            echo -e "${BOLD_RED}==================================================${NC}"
+            echo -e "${BOLD_WHITE} Type 'y' for each VM you want to DESTROY:       ${NC}"
+            echo -e "${BOLD_RED}==================================================${NC}"
             declare -a targets_to_destroy=()
 
-            read -p "Destroy 'controller'? [y/N]: " dest_cntl
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'controller'? [y/N]: ${NC}")" dest_cntl
             if [[ "$dest_cntl" =~ ^[Yy]$ ]]; then targets_to_destroy+=("controller"); fi
             
-            read -p "Destroy 'reposerver'? [y/N]: " dest_repo
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'reposerver'? [y/N]: ${NC}")" dest_repo
             if [[ "$dest_repo" =~ ^[Yy]$ ]]; then targets_to_destroy+=("reposerver"); fi
             
-            read -p "Destroy 'storage-lab'? [y/N]: " dest_stg
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'storage-lab'? [y/N]: ${NC}")" dest_stg
             if [[ "$dest_stg" =~ ^[Yy]$ ]]; then targets_to_destroy+=("storage-lab"); fi
             
-            read -p "Destroy 'servera'? [y/N]: " dest_sa
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'servera'? [y/N]: ${NC}")" dest_sa
             if [[ "$dest_sa" =~ ^[Yy]$ ]]; then targets_to_destroy+=("servera"); fi
             
-            read -p "Destroy 'serverb'? [y/N]: " dest_sb
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'serverb'? [y/N]: ${NC}")" dest_sb
             if [[ "$dest_sb" =~ ^[Yy]$ ]]; then targets_to_destroy+=("serverb"); fi
             
-            read -p "Destroy 'serverc'? [y/N]: " dest_sc
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'serverc'? [y/N]: ${NC}")" dest_sc
             if [[ "$dest_sc" =~ ^[Yy]$ ]]; then targets_to_destroy+=("serverc"); fi
             
-            read -p "Destroy 'serverd'? [y/N]: " dest_sd
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'serverd'? [y/N]: ${NC}")" dest_sd
             if [[ "$dest_sd" =~ ^[Yy]$ ]]; then targets_to_destroy+=("serverd"); fi
             
-            read -p "Destroy 'servere'? [y/N]: " dest_se
+            read -p "$(echo -e "${TEXT_YELLOW}Destroy 'servere'? [y/N]: ${NC}")" dest_se
             if [[ "$dest_se" =~ ^[Yy]$ ]]; then targets_to_destroy+=("servere"); fi
 
             if [ ${#targets_to_destroy[@]} -eq 0 ]; then
-                echo "No VMs selected for removal. Returning to console."
+                echo -e "${BOLD_YELLOW}No VMs selected for removal. Returning to console.${NC}"
                 exit 0
             fi
 
             echo ""
-            echo "Targeting the following nodes for removal: ${targets_to_destroy[*]}"
-            read -p "Are you absolutely sure you want to destroy these specific nodes? (y/n): " confirm_sub
+            echo -e "${BOLD_RED}Targeting the following nodes for removal: ${BOLD_WHITE}${targets_to_destroy[*]}${NC}"
+            read -p "$(echo -e "${BOLD_YELLOW}Are you absolutely sure you want to destroy these specific nodes? (y/n): ${NC}")" confirm_sub
             if [[ "$confirm_sub" =~ ^[Yy]$ ]]; then
                 for target in "${targets_to_destroy[@]}"; do
-                    echo "Tearing down $target..."
+                    echo -e "${BOLD_RED}Tearing down $target...${NC}"
                     vagrant destroy -f "$target"
                     if [ "$target" == "storage-lab" ]; then
                         rm -f storage_disk.vdi
                     fi
                 done
-                echo "Selected nodes cleared successfully."
+                echo -e "${BOLD_GREEN}Selected nodes cleared successfully.${NC}"
             else
-                echo "Operation aborted."
+                echo -e "${BOLD_YELLOW}Operation aborted.${NC}"
             fi
         else
-            echo "Invalid teardown option selected."
+            echo -e "${BOLD_RED}Invalid teardown option selected.${NC}"
         fi
         ;;
     3)
-        echo "Exiting."
+        echo -e "${BOLD_WHITE}Exiting. Keep automating!${NC}"
         exit 0
         ;;
     *)
-        echo "Invalid option."
+        echo -e "${BOLD_RED}Invalid option.${NC}"
         exit 1
         ;;
 esac
