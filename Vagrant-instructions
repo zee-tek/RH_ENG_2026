@@ -1,0 +1,6 @@
+
+# After Cloning the repository you need to run this command on GIT BASH Terminal
+# Removes carriage return characters (\r) from the end of every line in lab_setup.sh, modifying the file directly.
+
+# Command:
+#   sed -i 's/\r$//' lab_setup.sh
